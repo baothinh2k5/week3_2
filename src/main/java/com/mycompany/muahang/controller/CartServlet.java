@@ -5,30 +5,28 @@ import com.mycompany.muahang.model.LineItem;
 import com.mycompany.muahang.model.Product;
 
 import java.io.IOException;
+// IMPORT QUAN TRỌNG ĐỂ SỬA LỖI 404
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+// DÒNG NÀY ĐỊNH NGHĨA ĐƯỜNG DẪN URL CHO SERVLET
+@WebServlet(name = "CartServlet", urlPatterns = {"/cart"})
 public class CartServlet extends HttpServlet {
 
-    // --- DỮ LIỆU TĨNH (Thay thế ProductDB) ---
-    // Chú ý: Mã "8601", "pfoot1"... phải KHỚP với value trong index.jsp
+    // --- DỮ LIỆU TĨNH ---
     private Product getStaticProduct(String code) {
         if (code == null) return null;
         
         switch (code) {
-            case "8601":
-                return new Product("8601", "86 (the band) - True Life Songs and Pictures", 14.95);
-            case "pfoot1":
-                return new Product("pfoot1", "Paddlefoot - The first CD", 12.95);
-            case "pfoot2":
-                return new Product("pfoot2", "Paddlefoot - The second CD", 14.95);
-            case "jrut":
-                return new Product("jrut", "Joe Rut - Genuine Wood Grained Finish", 14.95);
-            default:
-                return null;
+            case "8601": return new Product("8601", "86 (the band) - True Life Songs and Pictures", 14.95);
+            case "pfoot1": return new Product("pfoot1", "Paddlefoot - The first CD", 12.95);
+            case "pfoot2": return new Product("pfoot2", "Paddlefoot - The second CD", 14.95);
+            case "jrut": return new Product("jrut", "Joe Rut - Genuine Wood Grained Finish", 14.95);
+            default: return null;
         }
     }
 
@@ -42,25 +40,24 @@ public class CartServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
-        // 1. Lấy Session và Action
         HttpSession session = request.getSession();
-        String action = request.getParameter("action");
         
-        // Xử lý trường hợp action bị null ngay từ đầu
+        // Lấy action an toàn
+        String action = request.getParameter("action");
         if (action == null || action.isEmpty()) {
             action = "view_products";
         }
         
-        // 2. Lấy hoặc tạo Giỏ hàng
+        // Lấy/Tạo giỏ hàng
         Cart cart = (Cart) session.getAttribute("cart");
         if (cart == null) {
             cart = new Cart();
             session.setAttribute("cart", cart);
         }
 
-        String url = "/index.jsp"; // URL mặc định
+        String url = "/index.jsp";
 
-        // 3. XỬ LÝ LOGIC (Sử dụng so sánh ngược để tránh NullPointerException)
+        // XỬ LÝ LOGIC
         if ("view_products".equals(action)) {
             url = "/index.jsp";
             
@@ -74,21 +71,21 @@ public class CartServlet extends HttpServlet {
                 lineItem.setQuantity(1);
                 
                 cart.addItem(lineItem);
-                session.setAttribute("cart", cart); // Cập nhật session
-                url = "/cart.jsp"; // Chuyển hướng sang giỏ hàng thành công
+                session.setAttribute("cart", cart);
+                url = "/cart.jsp";
             } else {
-                url = "/index.jsp"; // Lỗi sản phẩm -> về trang chủ
+                url = "/index.jsp";
             }
             
         } else if ("update".equals(action)) {
             String productCode = request.getParameter("productCode");
             String quantityString = request.getParameter("quantity");
-            int quantity = 0;
+            int quantity = 1;
             
             try {
                 quantity = Integer.parseInt(quantityString);
             } catch (NumberFormatException e) {
-                quantity = 1; // Mặc định nếu nhập sai
+                quantity = 1;
             }
             
             Product product = getStaticProduct(productCode);
@@ -109,7 +106,6 @@ public class CartServlet extends HttpServlet {
             if (product != null) {
                 LineItem lineItem = new LineItem();
                 lineItem.setProduct(product);
-                
                 cart.removeItem(lineItem);
                 session.setAttribute("cart", cart);
             }
@@ -119,10 +115,14 @@ public class CartServlet extends HttpServlet {
             url = "/cart.jsp";
             
         } else if ("checkout".equals(action)) {
-            url = "/checkout.jsp"; 
+            // 1. Xóa sạch giỏ hàng
+            cart.emptyCart();
+            session.setAttribute("cart", cart);
+            
+            // 2. Quay lại trang chủ (index.jsp) thay vì trang thông báo
+            url = "/index.jsp"; 
         }
         
-        // 4. Chuyển hướng
         getServletContext()
                 .getRequestDispatcher(url)
                 .forward(request, response);

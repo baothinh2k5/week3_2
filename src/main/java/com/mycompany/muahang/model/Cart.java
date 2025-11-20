@@ -13,6 +13,7 @@ public class Cart implements Serializable {
     public List<LineItem> getItems() { return items; }
     public void setItems(List<LineItem> items) { this.items = items; }
 
+    // Thêm sản phẩm: Nếu có rồi thì cộng dồn số lượng
     public void addItem(LineItem item) {
         String code = item.getProduct().getCode();
         int quantity = item.getQuantity();
@@ -26,6 +27,7 @@ public class Cart implements Serializable {
         items.add(item);
     }
 
+    // Cập nhật số lượng: Nếu số lượng <= 0 thì xóa
     public void updateItem(LineItem item) {
         String code = item.getProduct().getCode();
         int quantity = item.getQuantity();
@@ -52,5 +54,17 @@ public class Cart implements Serializable {
                 return;
             }
         }
+    }
+    
+    // *** TÍNH NĂNG MỚI: TỔNG TIỀN GIỎ HÀNG ***
+    public double getGrandTotal() {
+        double total = 0;
+        for (LineItem item : items) {
+            total += item.getTotalAmount();
+        }
+        return total;
+    }
+    public void emptyCart() {
+        items.clear();
     }
 }
