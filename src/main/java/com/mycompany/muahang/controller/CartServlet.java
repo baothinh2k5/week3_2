@@ -5,22 +5,20 @@ import com.mycompany.muahang.model.LineItem;
 import com.mycompany.muahang.model.Product;
 
 import java.io.IOException;
-// IMPORT QUAN TRỌNG ĐỂ SỬA LỖI 404
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-// DÒNG NÀY ĐỊNH NGHĨA ĐƯỜNG DẪN URL CHO SERVLET
 @WebServlet(name = "CartServlet", urlPatterns = {"/cart"})
 public class CartServlet extends HttpServlet {
 
-    // --- DỮ LIỆU TĨNH ---
+    // DỮ LIỆU TĨNH (Dùng để tra cứu khi thêm vào giỏ)
+    // Phải khớp với dữ liệu bên index.jsp
     private Product getStaticProduct(String code) {
         if (code == null) return null;
-        
         switch (code) {
             case "8601": return new Product("8601", "86 (the band) - True Life Songs and Pictures", 14.95);
             case "pfoot1": return new Product("pfoot1", "Paddlefoot - The first CD", 12.95);
@@ -41,14 +39,9 @@ public class CartServlet extends HttpServlet {
             throws ServletException, IOException {
         
         HttpSession session = request.getSession();
-        
-        // Lấy action an toàn
         String action = request.getParameter("action");
-        if (action == null || action.isEmpty()) {
-            action = "view_products";
-        }
+        if (action == null || action.isEmpty()) action = "view_products";
         
-        // Lấy/Tạo giỏ hàng
         Cart cart = (Cart) session.getAttribute("cart");
         if (cart == null) {
             cart = new Cart();
@@ -57,8 +50,8 @@ public class CartServlet extends HttpServlet {
 
         String url = "/index.jsp";
 
-        // XỬ LÝ LOGIC
         if ("view_products".equals(action)) {
+            // Không cần gửi data nữa, index.jsp tự có data
             url = "/index.jsp";
             
         } else if ("add".equals(action)) {
@@ -81,19 +74,13 @@ public class CartServlet extends HttpServlet {
             String productCode = request.getParameter("productCode");
             String quantityString = request.getParameter("quantity");
             int quantity = 1;
-            
-            try {
-                quantity = Integer.parseInt(quantityString);
-            } catch (NumberFormatException e) {
-                quantity = 1;
-            }
+            try { quantity = Integer.parseInt(quantityString); } catch (NumberFormatException e) {}
             
             Product product = getStaticProduct(productCode);
             if (product != null) {
                 LineItem lineItem = new LineItem();
                 lineItem.setProduct(product);
                 lineItem.setQuantity(quantity);
-                
                 cart.updateItem(lineItem);
                 session.setAttribute("cart", cart);
             }
@@ -102,7 +89,6 @@ public class CartServlet extends HttpServlet {
         } else if ("remove".equals(action)) {
             String productCode = request.getParameter("productCode");
             Product product = getStaticProduct(productCode);
-            
             if (product != null) {
                 LineItem lineItem = new LineItem();
                 lineItem.setProduct(product);
@@ -115,16 +101,11 @@ public class CartServlet extends HttpServlet {
             url = "/cart.jsp";
             
         } else if ("checkout".equals(action)) {
-            // 1. Xóa sạch giỏ hàng
             cart.emptyCart();
             session.setAttribute("cart", cart);
-            
-            // 2. Quay lại trang chủ (index.jsp) thay vì trang thông báo
-            url = "/index.jsp"; 
+            url = "/index.jsp";
         }
         
-        getServletContext()
-                .getRequestDispatcher(url)
-                .forward(request, response);
+        getServletContext().getRequestDispatcher(url).forward(request, response);
     }
 }
